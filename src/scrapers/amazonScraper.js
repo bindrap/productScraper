@@ -17,36 +17,79 @@ class AmazonScraper extends BaseScraper {
     const searchUrl = `${this.baseUrl}/s?k=${encodeURIComponent(searchTerm)}`;
 
     try {
-      logger.info(`Navigating to Amazon search: ${searchUrl}`);
-      await page.goto(searchUrl, { waitUntil: 'networkidle2' });
+      logger.info(`🔍 Navigating to Amazon search: ${searchUrl}`);
 
-      // Wait for search results to load - try multiple selectors
-      const resultsLoaded = await this.waitForSelector(page, '[data-component-type="s-search-result"], .s-result-item, div[data-asin]:not([data-asin=""])', 15000);
-      if (!resultsLoaded) {
-        logger.warn('No search results found on Amazon');
-        // Take screenshot for debugging
-        try {
-          await page.screenshot({ path: 'amazon-debug.png' });
-          logger.info('Saved Amazon debug screenshot');
-        } catch (e) {}
+      // Navigate with longer timeout
+      await page.goto(searchUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000
+      });
+
+      // Add random human-like delay
+      const delay = 2000 + Math.random() * 2000;
+      logger.debug(`⏱️  Waiting ${Math.round(delay)}ms (human-like delay)...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // Check for CAPTCHA
+      const hasCaptcha = await page.evaluate(() => {
+        return document.body.textContent.includes('Enter the characters you see below') ||
+               document.querySelector('form[action*="validateCaptcha"]') !== null;
+      });
+
+      if (hasCaptcha) {
+        logger.warn('⚠️  CAPTCHA detected on Amazon - saving screenshot');
+        await page.screenshot({ path: 'amazon-captcha.png', fullPage: true });
+        logger.error('❌ Amazon blocked with CAPTCHA. Screenshot saved to amazon-captcha.png');
         return [];
       }
+
+      // Log page title for debugging
+      const pageTitle = await page.title();
+      logger.debug(`📄 Page title: ${pageTitle}`);
+
+      // Wait for search results to load - try multiple selectors
+      logger.debug('⏳ Waiting for product elements...');
+      const resultsLoaded = await this.waitForSelector(page, '[data-component-type="s-search-result"], .s-result-item, div[data-asin]:not([data-asin=""])', 20000);
+
+      if (!resultsLoaded) {
+        logger.warn('❌ No search results found on Amazon');
+        // Take screenshot for debugging
+        try {
+          await page.screenshot({ path: 'amazon-debug.png', fullPage: true });
+          logger.info('📸 Saved Amazon debug screenshot to amazon-debug.png');
+
+          // Also log page HTML for analysis
+          const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+          logger.debug(`📝 Page HTML length: ${bodyHTML.length} characters`);
+          if (bodyHTML.length < 1000) {
+            logger.error(`⚠️  Suspiciously short HTML response: ${bodyHTML.substring(0, 500)}`);
+          }
+        } catch (e) {
+          logger.error('Failed to save debug screenshot:', e.message);
+        }
+        return [];
+      }
+
+      logger.info('✅ Amazon product elements found');
 
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
         // Try multiple selector strategies
         let productElements = document.querySelectorAll('[data-component-type="s-search-result"]');
+        let selectorUsed = '[data-component-type="s-search-result"]';
 
         if (productElements.length === 0) {
           productElements = document.querySelectorAll('.s-result-item[data-asin]:not([data-asin=""])');
+          selectorUsed = '.s-result-item[data-asin]:not([data-asin=""])';
         }
 
         if (productElements.length === 0) {
           productElements = document.querySelectorAll('div[data-asin]:not([data-asin=""])');
+          selectorUsed = 'div[data-asin]:not([data-asin=""])';
         }
 
-        console.log(`Found ${productElements.length} product elements on Amazon`);
+        console.log(`✅ Found ${productElements.length} product elements using: ${selectorUsed}`);
 
         for (let i = 0; i < productElements.length && results.length < maxResults; i++) {
           const element = productElements[i];
@@ -103,12 +146,16 @@ class AmazonScraper extends BaseScraper {
                 image,
                 rating: rating ? parseFloat(rating) : null
               });
+              console.log(`✅ Product ${results.length}: ${title.substring(0, 50)}... - $${price}`);
+            } else {
+              console.log(`❌ Skipped product ${i + 1}: missing data (title: ${!!title}, price: ${!!price}, url: ${!!relativeUrl})`);
             }
           } catch (error) {
-            console.log('Error extracting product data:', error);
+            console.log(`❌ Error extracting product ${i + 1}:`, error.message);
           }
         }
 
+        console.log(`📊 Total products extracted: ${results.length}/${productElements.length}`);
         return results;
       }, maxResults);
 
