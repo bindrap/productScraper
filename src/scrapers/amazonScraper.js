@@ -36,16 +36,6 @@ class AmazonScraper extends BaseScraper {
           const element = productElements[i];
 
           try {
-            // Skip sponsored results
-            const isSponsored = element.querySelector('[data-component-type="sp-sponsored-result"]') ||
-                              element.querySelector('.AdHolder') ||
-                              element.querySelector('.s-label-popover-default') ||
-                              element.textContent.includes('Sponsored');
-
-            if (isSponsored) {
-              continue;
-            }
-
             const titleElement = element.querySelector('h2 a span, .s-title-instructions-style span');
             const priceElement = element.querySelector('.a-price-whole, .a-price .a-offscreen');
             const linkElement = element.querySelector('h2 a');
@@ -66,7 +56,7 @@ class AmazonScraper extends BaseScraper {
 
             const rating = ratingElement ? ratingElement.textContent.match(/(\d+\.?\d*)/)?.[1] : null;
 
-            // Clean up title - remove "Sponsored" and extra whitespace
+            // Clean up title - remove "Sponsored" text and extra whitespace
             title = title.replace(/sponsored/gi, '').replace(/\s+/g, ' ').trim();
 
             if (title && price && relativeUrl) {

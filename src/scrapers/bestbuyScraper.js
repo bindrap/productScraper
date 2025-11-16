@@ -20,8 +20,8 @@ class BestBuyScraper extends BaseScraper {
       logger.info(`Navigating to BestBuy search: ${searchUrl}`);
       await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-      // Wait for search results to load
-      const resultsLoaded = await this.waitForSelector(page, '.sku-item, .list-item, .shop-product-title', 15000);
+      // Wait for search results to load - try multiple selectors
+      const resultsLoaded = await this.waitForSelector(page, '.sku-item, .list-item, .shop-product-title, div.shop-sku-list-item', 20000);
       if (!resultsLoaded) {
         logger.warn('No search results found on BestBuy');
         return [];
@@ -30,31 +30,45 @@ class BestBuyScraper extends BaseScraper {
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
-        const productElements = document.querySelectorAll('.sku-item, .list-item');
+        // Try multiple selector combinations
+        let productElements = document.querySelectorAll('.sku-item');
+        if (productElements.length === 0) {
+          productElements = document.querySelectorAll('.list-item');
+        }
+        if (productElements.length === 0) {
+          productElements = document.querySelectorAll('.shop-sku-list-item');
+        }
 
-        for (let i = 0; i < Math.min(productElements.length, maxResults * 2); i++) {
+        for (let i = 0; i < Math.min(productElements.length, maxResults * 3) && results.length < maxResults; i++) {
           const element = productElements[i];
 
           try {
             // Try multiple title selectors
             const titleElement = element.querySelector('.sku-title a') ||
                                element.querySelector('.sku-header a') ||
-                               element.querySelector('h4.sku-title');
+                               element.querySelector('h4.sku-title') ||
+                               element.querySelector('.sku-title') ||
+                               element.querySelector('a[class*="title"]');
 
             // Try multiple price selectors
             const priceElement = element.querySelector('.priceView-customer-price span[aria-hidden="true"]') ||
                                element.querySelector('.priceView-hero-price span') ||
                                element.querySelector('.priceView-customer-price') ||
-                               element.querySelector('[data-testid="customer-price"]');
+                               element.querySelector('[data-testid="customer-price"]') ||
+                               element.querySelector('span[class*="price"]') ||
+                               element.querySelector('.priceView-layout-large span');
 
             // Try multiple link selectors
             const linkElement = element.querySelector('.sku-title a') ||
                               element.querySelector('.sku-header a') ||
-                              element.querySelector('a[href*="/site/"]');
+                              element.querySelector('a[href*="/site/"]') ||
+                              element.querySelector('a[href*="bestbuy.com"]') ||
+                              element.querySelector('a');
 
             // Try multiple image selectors
             const imageElement = element.querySelector('.product-image img') ||
                                 element.querySelector('img.product-image') ||
+                                element.querySelector('img[class*="product"]') ||
                                 element.querySelector('img');
 
             if (!titleElement || !priceElement) continue;

@@ -546,6 +546,45 @@ class ScraperDatabase {
     return stmt.all(userId, status);
   }
 
+  getJobByDatabaseId(id, userId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM scraping_jobs
+      WHERE id = ? AND user_id = ?
+    `);
+    return stmt.get(id, userId);
+  }
+
+  getResultsByDatabaseJobId(jobId, userId) {
+    const stmt = this.db.prepare(`
+      SELECT r.* FROM scraping_results r
+      JOIN scraping_jobs j ON r.job_id = j.job_id
+      WHERE j.id = ? AND r.user_id = ?
+      ORDER BY r.price ASC
+    `);
+    return stmt.all(jobId, userId);
+  }
+
+  deleteJob(jobId, userId) {
+    const job = this.getJobByDatabaseId(jobId, userId);
+    if (!job) {
+      throw new Error('Job not found or not authorized');
+    }
+
+    // Delete results associated with this job
+    const deleteResults = this.db.prepare(`
+      DELETE FROM scraping_results
+      WHERE job_id = ? AND user_id = ?
+    `);
+    deleteResults.run(job.job_id, userId);
+
+    // Delete the job itself
+    const deleteJob = this.db.prepare(`
+      DELETE FROM scraping_jobs
+      WHERE id = ? AND user_id = ?
+    `);
+    return deleteJob.run(jobId, userId);
+  }
+
   getStatistics(userId) {
     const totalResults = this.db.prepare('SELECT COUNT(*) as count FROM scraping_results WHERE user_id = ?').get(userId);
     const totalJobs = this.db.prepare('SELECT COUNT(*) as count FROM scraping_jobs WHERE user_id = ?').get(userId);

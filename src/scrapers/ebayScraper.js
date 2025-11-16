@@ -20,8 +20,8 @@ class EbayScraper extends BaseScraper {
       logger.info(`Navigating to eBay search: ${searchUrl}`);
       await page.goto(searchUrl, { waitUntil: 'networkidle2' });
 
-      // Wait for search results to load
-      const resultsLoaded = await this.waitForSelector(page, '.s-item');
+      // Wait for search results to load - try multiple selectors
+      const resultsLoaded = await this.waitForSelector(page, '.s-item, .srp-results .s-item, ul.srp-results li', 15000);
       if (!resultsLoaded) {
         logger.warn('No search results found on eBay');
         return [];
@@ -30,32 +30,45 @@ class EbayScraper extends BaseScraper {
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
-        const productElements = document.querySelectorAll('.s-item:not(.s-item--watch-at-auction)');
+        // Try multiple selector combinations
+        let productElements = document.querySelectorAll('.s-item');
 
-        for (let i = 0; i < productElements.length && results.length < maxResults; i++) {
+        // Filter out non-product items (ads, related searches, etc.)
+        productElements = Array.from(productElements).filter(el => {
+          const title = el.querySelector('.s-item__title');
+          if (!title) return false;
+          const titleText = title.textContent.trim();
+          // Skip non-product items
+          return !titleText.includes('Shop on eBay') &&
+                 !titleText.includes('Related:') &&
+                 !titleText.includes('Sponsored');
+        });
+
+        for (let i = 0; i < Math.min(productElements.length, maxResults * 2) && results.length < maxResults; i++) {
           const element = productElements[i];
 
           try {
-            const titleElement = element.querySelector('.s-item__title');
-            const priceElement = element.querySelector('.s-item__price');
-            const linkElement = element.querySelector('.s-item__link');
-            const imageElement = element.querySelector('.s-item__image-wrapper img, .s-item__image img');
+            // Try multiple selectors for each field
+            const titleElement = element.querySelector('.s-item__title, h3.s-item__title');
+            const priceElement = element.querySelector('.s-item__price, span.s-item__price');
+            const linkElement = element.querySelector('.s-item__link, a.s-item__link');
+            const imageElement = element.querySelector('img.s-item__image-img') ||
+                                element.querySelector('.s-item__image-wrapper img') ||
+                                element.querySelector('.s-item__image img') ||
+                                element.querySelector('img');
 
-            if (!titleElement) continue;
+            if (!titleElement || !priceElement) continue;
 
             let title = titleElement.textContent.trim();
-            const price = priceElement ? priceElement.textContent.trim() : '';
+            const price = priceElement.textContent.trim();
             const url = linkElement ? linkElement.getAttribute('href') : '';
 
             // Get high-quality image
             let image = '';
             if (imageElement) {
-              image = imageElement.getAttribute('src') || imageElement.getAttribute('data-src') || '';
-            }
-
-            // Skip non-product items
-            if (title.includes('Shop on eBay') || title.includes('Related:')) {
-              continue;
+              image = imageElement.getAttribute('src') ||
+                     imageElement.getAttribute('data-src') ||
+                     imageElement.getAttribute('data-image') || '';
             }
 
             // Clean up title

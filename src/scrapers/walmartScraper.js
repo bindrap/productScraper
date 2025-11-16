@@ -20,8 +20,8 @@ class WalmartScraper extends BaseScraper {
       logger.info(`Navigating to Walmart search: ${searchUrl}`);
       await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
-      // Wait for search results to load
-      const resultsLoaded = await this.waitForSelector(page, '[data-item-id], [data-testid="item-stack"]', 15000);
+      // Wait for search results to load - try multiple selectors
+      const resultsLoaded = await this.waitForSelector(page, '[data-item-id], [data-testid="item-stack"], .search-result-gridview-item, div[data-testid="list-view"]', 20000);
       if (!resultsLoaded) {
         logger.warn('No search results found on Walmart');
         return [];
@@ -30,29 +30,43 @@ class WalmartScraper extends BaseScraper {
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
-        const productElements = document.querySelectorAll('[data-item-id], [data-testid="list-view"] > div');
+        // Try multiple selector combinations for product elements
+        let productElements = document.querySelectorAll('[data-item-id]');
+        if (productElements.length === 0) {
+          productElements = document.querySelectorAll('[data-testid="list-view"] > div');
+        }
+        if (productElements.length === 0) {
+          productElements = document.querySelectorAll('.search-result-gridview-item');
+        }
 
-        for (let i = 0; i < Math.min(productElements.length, maxResults * 2); i++) {
+        for (let i = 0; i < Math.min(productElements.length, maxResults * 3) && results.length < maxResults; i++) {
           const element = productElements[i];
 
           try {
             // Try multiple title selectors
             const titleElement = element.querySelector('[data-automation-id="product-title"]') ||
                                 element.querySelector('span[data-automation-id="product-title"]') ||
-                                element.querySelector('[aria-label*="link"]');
+                                element.querySelector('[aria-label]') ||
+                                element.querySelector('span.w_V_DM') ||
+                                element.querySelector('a span');
 
             // Try multiple price selectors
             const priceElement = element.querySelector('[data-automation-id="product-price"]') ||
-                               element.querySelector('.f2') ||
-                               element.querySelector('[itemprop="price"]');
+                               element.querySelector('.f2, .b') ||
+                               element.querySelector('[itemprop="price"]') ||
+                               element.querySelector('div[data-automation-id="product-price"] span') ||
+                               element.querySelector('span[class*="price"]');
 
             // Try multiple link selectors
             const linkElement = element.querySelector('a[link-identifier]') ||
-                              element.querySelector('a[href*="/ip/"]');
+                              element.querySelector('a[href*="/ip/"]') ||
+                              element.querySelector('a[href*="walmart.com"]') ||
+                              element.querySelector('a');
 
             // Try multiple image selectors
             const imageElement = element.querySelector('img[data-testid="productTileImage"]') ||
                                 element.querySelector('img[src*="i5.walmartimages"]') ||
+                                element.querySelector('img[src*="walmart"]') ||
                                 element.querySelector('img');
 
             if (!titleElement || !priceElement) continue;

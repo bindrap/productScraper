@@ -303,6 +303,50 @@ app.get('/api/jobs/:jobId', authenticate, (req, res) => {
   }
 });
 
+// Delete job (user-specific)
+app.delete('/api/jobs/:jobId', authenticate, (req, res) => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const job = db.getJobByDatabaseId(jobId, req.user.id);
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found or not authorized' });
+    }
+
+    // Delete the job (will cascade delete results)
+    db.deleteJob(jobId, req.user.id);
+    res.json({ message: 'Job deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting job:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get results for a specific job (user-specific)
+app.get('/api/jobs/:jobId/results', authenticate, (req, res) => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const job = db.getJobByDatabaseId(jobId, req.user.id);
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found or not authorized' });
+    }
+
+    const results = db.getResultsByDatabaseJobId(jobId, req.user.id);
+
+    // Add CAD conversion (1 USD = 1.35 CAD approximately)
+    const resultsWithCAD = results.map(result => ({
+      ...result,
+      price_cad: result.price ? (result.price * 1.35).toFixed(2) : null
+    }));
+
+    res.json(resultsWithCAD);
+  } catch (error) {
+    logger.error('Error getting job results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create and run new scraping job (user-specific)
 app.post('/api/scrape', authenticate, async (req, res) => {
   try {

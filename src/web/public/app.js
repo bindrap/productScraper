@@ -273,10 +273,17 @@ async function loadJobs() {
           <p><strong>Websites:</strong> ${job.websites}</p>
           <p><strong>Created:</strong> ${new Date(job.created_at).toLocaleString()}</p>
           ${job.completed_at ? `<p><strong>Completed:</strong> ${new Date(job.completed_at).toLocaleString()}</p>` : ''}
-          ${job.results_count ? `<p><strong>Results:</strong> ${job.results_count} products found</p>` : ''}
         </div>
         <div class="job-actions">
-          <button class="btn btn-small" onclick="shareJob(${job.id})">Share with Friend</button>
+          <button class="btn btn-small btn-primary" onclick="viewJobResults(${job.id}, '${job.search_term}')">
+            📊 View Results
+          </button>
+          <button class="btn btn-small" onclick="shareJob(${job.id})">
+            📤 Share
+          </button>
+          <button class="btn btn-small btn-danger" onclick="deleteJob(${job.id})">
+            🗑️ Delete
+          </button>
         </div>
       </div>
     `).join('');
@@ -552,6 +559,74 @@ function closeShareModal() {
 }
 
 // ==========================================
+// Job Management Functions
+// ==========================================
+
+async function viewJobResults(jobId, searchTerm) {
+  const modal = document.getElementById('jobResultsModal');
+  const titleEl = document.getElementById('jobResultsTitle');
+  const contentEl = document.getElementById('jobResultsContent');
+
+  titleEl.textContent = `Results for: ${searchTerm}`;
+  contentEl.innerHTML = '<p class="loading">Loading results...</p>';
+  modal.style.display = 'block';
+
+  try {
+    const results = await apiCall(`/api/jobs/${jobId}/results`);
+
+    if (results.length === 0) {
+      contentEl.innerHTML = '<p class="empty-state">No results found for this job yet.</p>';
+      return;
+    }
+
+    contentEl.innerHTML = results.map(result => {
+      const priceUSD = result.price ? result.price.toFixed(2) : 'N/A';
+      const priceCAD = result.price_cad ? result.price_cad : 'N/A';
+
+      return `
+        <div class="result-card">
+          <img src="${result.image || '/placeholder.jpg'}" alt="${result.title}" onerror="this.src='/placeholder.jpg'">
+          <div class="result-info">
+            <h3>${result.title}</h3>
+            <p class="result-price">
+              💵 USD: $${priceUSD}<br>
+              🍁 CAD: $${priceCAD}
+            </p>
+            ${result.rating ? `<p class="result-rating">⭐ ${result.rating}/5</p>` : ''}
+            <p class="result-source">${result.website}</p>
+            <a href="${result.url}" target="_blank" class="btn btn-small">View Product</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    contentEl.innerHTML = '<p class="error">Failed to load job results</p>';
+  }
+}
+
+async function deleteJob(jobId) {
+  if (!confirm('Are you sure you want to delete this job? This will also delete all associated results.')) {
+    return;
+  }
+
+  try {
+    await apiCall(`/api/jobs/${jobId}`, {
+      method: 'DELETE'
+    });
+
+    showSuccess('Job deleted successfully');
+    loadJobs();
+    loadStats();
+  } catch (error) {
+    showError(error.message);
+  }
+}
+
+function closeJobResultsModal() {
+  document.getElementById('jobResultsModal').style.display = 'none';
+}
+
+// ==========================================
 // Event Listeners
 // ==========================================
 
@@ -690,12 +765,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Share modal close
-  document.querySelector('.modal .close').addEventListener('click', closeShareModal);
+  document.querySelector('#shareModal .close').addEventListener('click', closeShareModal);
+
+  // Job results modal close
+  document.querySelector('#jobResultsModal .close').addEventListener('click', closeJobResultsModal);
 
   window.addEventListener('click', (e) => {
-    const modal = document.getElementById('shareModal');
-    if (e.target === modal) {
+    const shareModal = document.getElementById('shareModal');
+    const jobResultsModal = document.getElementById('jobResultsModal');
+
+    if (e.target === shareModal) {
       closeShareModal();
+    }
+    if (e.target === jobResultsModal) {
+      closeJobResultsModal();
     }
   });
 

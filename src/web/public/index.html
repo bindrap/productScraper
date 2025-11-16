@@ -254,13 +254,24 @@
     <!-- Share Modal -->
     <div id="shareModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" onclick="closeShareModal()">&times;</span>
             <h2>Share Job with Friends</h2>
             <p>Select a friend to share this job with:</p>
             <div id="shareFriendsList"></div>
         </div>
     </div>
 
-    <script src="/app_auth.js"></script>
+    <!-- Job Results Modal -->
+    <div id="jobResultsModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeJobResultsModal()">&times;</span>
+            <h2 id="jobResultsTitle">Job Results</h2>
+            <div id="jobResultsContent" class="results-container">
+                <p class="loading">Loading results...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
 </body>
 </html>
