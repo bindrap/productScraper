@@ -698,4 +698,22 @@ document.addEventListener('DOMContentLoaded', () => {
       closeShareModal();
     }
   });
+
+  // Theme toggle
+  const themeToggle = document.getElementById('themeToggle');
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+
+  // Apply saved theme
+  if (savedTheme === 'light') {
+    document.body.classList.add('light-mode');
+    themeToggle.textContent = '☀️';
+  }
+
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light-mode');
+    const isLightMode = document.body.classList.contains('light-mode');
+
+    themeToggle.textContent = isLightMode ? '☀️' : '🌙';
+    localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+  });
 });
