@@ -469,8 +469,16 @@ async function runScrapingJob(jobId, searchTerm, websites, maxResults, sendEmail
 
     if (sendEmail && emailService && topResults.length > 0) {
       try {
-        await emailService.sendTopProducts(topResults, searchTerm);
-        io.emit('job:progress', { jobId, message: 'Email sent successfully', userId });
+        // Get user's email address
+        const user = db.getUserById(userId);
+        const userEmail = user ? user.email : null;
+
+        if (userEmail) {
+          await emailService.sendTopProducts(topResults, searchTerm, userEmail);
+          io.emit('job:progress', { jobId, message: `Email sent successfully to ${userEmail}`, userId });
+        } else {
+          logger.warn(`No email found for user ${userId}, skipping email`);
+        }
       } catch (emailError) {
         logger.error(`Error sending email for job ${jobId}:`, emailError);
       }

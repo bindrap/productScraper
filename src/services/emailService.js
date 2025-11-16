@@ -23,7 +23,7 @@ class EmailService {
     }
   }
 
-  async sendTopProducts(products, searchTerm = '') {
+  async sendTopProducts(products, searchTerm = '', recipientEmail = null) {
     if (!this.transporter) {
       throw new Error('Email service not initialized. Please check your email configuration.');
     }
@@ -33,18 +33,25 @@ class EmailService {
       return;
     }
 
+    // Use recipient email if provided, otherwise fall back to EMAIL_RECIPIENT or EMAIL_USER
+    const recipient = recipientEmail || process.env.EMAIL_RECIPIENT || process.env.EMAIL_USER;
+
+    if (!recipient) {
+      throw new Error('No recipient email address provided');
+    }
+
     try {
       const htmlContent = this.generateEmailHTML(products, searchTerm);
 
       const mailOptions = {
         from: process.env.EMAIL_USER,
-        to: process.env.EMAIL_RECIPIENT || process.env.EMAIL_USER,
+        to: recipient,
         subject: `🛍️ Top ${products.length} Products Found${searchTerm ? ` for "${searchTerm}"` : ''}`,
         html: htmlContent
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info('Email sent successfully:', info.messageId);
+      logger.info(`Email sent successfully to ${recipient}:`, info.messageId);
 
       return info;
     } catch (error) {
