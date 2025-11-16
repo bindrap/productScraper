@@ -1,11 +1,19 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 const logger = require('../utils/logger');
 const bcrypt = require('bcrypt');
 
 class ScraperDatabase {
   constructor() {
-    const dbPath = path.join(__dirname, '..', '..', 'data', 'scraper.db');
+    const dataDir = path.join(__dirname, '..', '..', 'data');
+
+    // Create data directory if it doesn't exist
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    const dbPath = path.join(dataDir, 'scraper.db');
     this.db = new Database(dbPath);
     this.initializeTables();
     logger.info('Database initialized');

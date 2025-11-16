@@ -1,5 +1,12 @@
 const winston = require('winston');
 const path = require('path');
+const fs = require('fs');
+
+// Create logs directory if it doesn't exist
+const logsDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -13,11 +20,11 @@ const logger = winston.createLogger({
   defaultMeta: { service: 'product-scraper' },
   transports: [
     new winston.transports.File({
-      filename: path.join(process.cwd(), 'logs', 'error.log'),
+      filename: path.join(logsDir, 'error.log'),
       level: 'error'
     }),
     new winston.transports.File({
-      filename: path.join(process.cwd(), 'logs', 'combined.log')
+      filename: path.join(logsDir, 'combined.log')
     })
   ]
 });
