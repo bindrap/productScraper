@@ -713,7 +713,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchTerm = document.getElementById('searchTerm').value;
     const websites = Array.from(document.querySelectorAll('input[name="websites"]:checked'))
       .map(cb => cb.value);
-    const maxResults = parseInt(document.getElementById('maxResults').value);
     const sendEmail = document.getElementById('sendEmail').checked;
 
     if (websites.length === 0) {
@@ -724,7 +723,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await startScraping({
       searchTerm,
       websites,
-      maxResults,
       sendEmail
     });
   });

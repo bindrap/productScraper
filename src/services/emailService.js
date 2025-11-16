@@ -46,7 +46,7 @@ class EmailService {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: recipient,
-        subject: `🛍️ Top ${products.length} Products Found${searchTerm ? ` for "${searchTerm}"` : ''}`,
+        subject: `🛍️ ${products.length} Product Results${searchTerm ? ` for "${searchTerm}"` : ''} - Comprehensive Price Range`,
         html: htmlContent
       };
 

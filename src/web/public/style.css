@@ -386,6 +386,13 @@ header h1 {
     accent-color: var(--primary);
 }
 
+.helper-text {
+    margin-top: 0.5rem;
+    font-size: 0.875em;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
 /* ==========================================
    Buttons
    ========================================== */

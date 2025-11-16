@@ -360,25 +360,28 @@ app.get('/api/jobs/:jobId/results', authenticate, (req, res) => {
 // Create and run new scraping job (user-specific)
 app.post('/api/scrape', authenticate, async (req, res) => {
   try {
-    const { searchTerm, websites, maxResults, sendEmail } = req.body;
+    const { searchTerm, websites, sendEmail } = req.body;
 
     if (!searchTerm) {
       return res.status(400).json({ error: 'Search term is required' });
     }
+
+    // Always scrape 20 products to ensure we get enough for filtering
+    const maxResults = 20;
 
     // Create job in database with user ID
     const jobId = db.createJob({
       name: `Scrape: ${searchTerm}`,
       searchTerm,
       websites: websites || ['amazon', 'ebay'],
-      maxResults: maxResults || 3
+      maxResults: 9 // Store as 9 for display purposes
     }, req.user.id);
 
     // Return immediately
     res.json({ jobId, status: 'pending', message: 'Job created successfully' });
 
-    // Run scraping in background
-    runScrapingJob(jobId, searchTerm, websites || ['amazon', 'ebay'], maxResults || 3, sendEmail || false, req.user.id);
+    // Run scraping in background with 20 results to filter from
+    runScrapingJob(jobId, searchTerm, websites || ['amazon', 'ebay'], maxResults, sendEmail || false, req.user.id);
 
   } catch (error) {
     logger.error('Error creating scrape job:', error);
@@ -424,6 +427,48 @@ app.get('/api/scrapers', (req, res) => {
 
 // ============= Background Job Runner =============
 
+// Helper function to select 9 products: 3 lowest, 3 mid, 3 highest
+function selectDiversePriceRange(products) {
+  const validProducts = products.filter(p => p.price !== null && p.price > 0);
+
+  if (validProducts.length === 0) return [];
+  if (validProducts.length <= 9) return validProducts;
+
+  // Sort by price
+  const sorted = [...validProducts].sort((a, b) => a.price - b.price);
+
+  const result = [];
+  const totalProducts = sorted.length;
+
+  // Get 3 lowest prices
+  result.push(...sorted.slice(0, 3));
+
+  // Get 3 mid prices (from the middle third)
+  const midStart = Math.floor(totalProducts / 3);
+  const midEnd = Math.floor((totalProducts * 2) / 3);
+  const midProducts = sorted.slice(midStart, midEnd);
+
+  if (midProducts.length >= 3) {
+    // Get evenly spaced products from middle third
+    const step = Math.floor(midProducts.length / 3);
+    result.push(midProducts[0]);
+    result.push(midProducts[step]);
+    result.push(midProducts[step * 2]);
+  } else {
+    result.push(...midProducts);
+  }
+
+  // Get 3 highest prices
+  result.push(...sorted.slice(-3));
+
+  // Remove duplicates (in case of small dataset)
+  const unique = result.filter((item, index, self) =>
+    index === self.findIndex(t => t.url === item.url)
+  );
+
+  return unique.slice(0, 9);
+}
+
 async function runScrapingJob(jobId, searchTerm, websites, maxResults, sendEmail, userId) {
   const scraper = new ProductScraper();
   let emailService = null;
@@ -439,6 +484,7 @@ async function runScrapingJob(jobId, searchTerm, websites, maxResults, sendEmail
     logger.info(`Starting job ${jobId} for user ${userId}: ${searchTerm}`);
 
     const allResults = [];
+    const websiteResults = {}; // Track results per website
 
     for (const websiteName of websites) {
       try {
@@ -449,12 +495,17 @@ async function runScrapingJob(jobId, searchTerm, websites, maxResults, sendEmail
           maxResults
         });
 
-        allResults.push(...results);
+        // Select 9 diverse products from this website
+        const selectedResults = selectDiversePriceRange(results);
+        websiteResults[websiteName] = selectedResults;
 
-        // Save results to database with user ID
-        db.insertResults(results, jobId, searchTerm, userId);
+        allResults.push(...selectedResults);
 
-        io.emit('job:results', { jobId, website: websiteName, results, userId });
+        // Save selected results to database with user ID
+        db.insertResults(selectedResults, jobId, searchTerm, userId);
+
+        io.emit('job:results', { jobId, website: websiteName, results: selectedResults, userId });
+        logger.info(`Selected ${selectedResults.length} products from ${websiteName} (3 low, 3 mid, 3 high)`);
 
       } catch (error) {
         logger.error(`Error scraping ${websiteName} for job ${jobId}:`, error);
@@ -462,19 +513,17 @@ async function runScrapingJob(jobId, searchTerm, websites, maxResults, sendEmail
       }
     }
 
-    const topResults = allResults
-      .filter(product => product.price !== null)
-      .sort((a, b) => a.price - b.price)
-      .slice(0, 3);
+    // For email, include all results (not just top 3)
+    const emailResults = allResults.filter(product => product.price !== null);
 
-    if (sendEmail && emailService && topResults.length > 0) {
+    if (sendEmail && emailService && emailResults.length > 0) {
       try {
         // Get user's email address
         const user = db.getUserById(userId);
         const userEmail = user ? user.email : null;
 
         if (userEmail) {
-          await emailService.sendTopProducts(topResults, searchTerm, userEmail);
+          await emailService.sendTopProducts(emailResults, searchTerm, userEmail);
           io.emit('job:progress', { jobId, message: `Email sent successfully to ${userEmail}`, userId });
         } else {
           logger.warn(`No email found for user ${userId}, skipping email`);
@@ -485,9 +534,9 @@ async function runScrapingJob(jobId, searchTerm, websites, maxResults, sendEmail
     }
 
     db.updateJobStatus(jobId, 'completed');
-    io.emit('job:status', { jobId, status: 'completed', results: topResults, userId });
+    io.emit('job:status', { jobId, status: 'completed', results: emailResults, userId });
 
-    logger.info(`Job ${jobId} completed successfully with ${allResults.length} results`);
+    logger.info(`Job ${jobId} completed successfully with ${allResults.length} total results (up to 9 per site)`);
 
   } catch (error) {
     logger.error(`Job ${jobId} failed:`, error);
