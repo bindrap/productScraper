@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Scraper - Multi-User Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="auth-screen" class="auth-screen">
+        <div class="auth-container">
+            <h1>🛍️ Product Scraper</h1>
+            <p class="auth-subtitle">Multi-User Price Monitoring Platform</p>
+
+            <!-- Login Form -->
+            <div id="login-form" class="auth-form active">
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <input type="text" id="loginUsername" required placeholder="Username">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="loginPassword" required placeholder="Password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Login</button>
+                </form>
+                <p class="auth-switch">
+                    Don't have an account? <a href="#" id="showRegister">Register</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form" class="auth-form">
+                <h2>Create Account</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <input type="text" id="regUsername" required placeholder="Username">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="regEmail" required placeholder="Email">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="regDisplayName" placeholder="Display Name (optional)">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="regPassword" required placeholder="Password (min 6 characters)">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+                </form>
+                <p class="auth-switch">
+                    Already have an account? <a href="#" id="showLogin">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard (shown after login) -->
+    <div id="dashboard" class="container" style="display: none;">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>🛍️ Product Scraper Dashboard</h1>
+                    <p class="subtitle">Monitor product prices across multiple platforms</p>
+                </div>
+                <div class="user-menu">
+                    <span class="user-display" id="userDisplay">👤 User</span>
+                    <button class="btn btn-small" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="totalResults">0</h3>
+                <p>Total Results</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalJobs">0</h3>
+                <p>Total Jobs</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="recentJobs">0</h3>
+                <p>Last 24h Jobs</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="avgPrice">$0.00</h3>
+                <p>Avg Price</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="scrape">New Scrape</button>
+            <button class="tab-button" data-tab="results">My Results</button>
+            <button class="tab-button" data-tab="jobs">My Jobs</button>
+            <button class="tab-button" data-tab="friends">Friends</button>
+            <button class="tab-button" data-tab="shared">Shared with Me</button>
+            <button class="tab-button" data-tab="logs">Logs</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Scrape Tab -->
+            <div id="scrape-tab" class="tab-pane active">
+                <div class="card">
+                    <h2>Start New Scraping Job</h2>
+                    <form id="scrapeForm">
+                        <div class="form-group">
+                            <label for="searchTerm">Search Term *</label>
+                            <input type="text" id="searchTerm" required placeholder="e.g., gaming laptop, smartphone">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Websites to Scrape</label>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="websites" value="amazon" checked> Amazon
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="websites" value="ebay" checked> eBay
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxResults">Max Results per Site</label>
+                            <input type="number" id="maxResults" value="3" min="1" max="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="sendEmail"> Send results via email
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="scrapeBtn">
+                            🔍 Start Scraping
+                        </button>
+                    </form>
+
+                    <!-- Job Status -->
+                    <div id="jobStatus" class="job-status hidden">
+                        <h3>Job Status</h3>
+                        <div class="status-info">
+                            <p><strong>Job ID:</strong> <span id="currentJobId"></span></p>
+                            <p><strong>Status:</strong> <span id="currentStatus" class="badge"></span></p>
+                            <p><strong>Progress:</strong> <span id="currentProgress"></span></p>
+                        </div>
+                        <div id="liveResults" class="live-results"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div id="results-tab" class="tab-pane">
+                <div class="card">
+                    <h2>My Scraping Results</h2>
+                    <div class="search-bar">
+                        <input type="text" id="searchResults" placeholder="Filter by search term...">
+                    </div>
+                    <div id="resultsContainer" class="results-container">
+                        <p class="loading">Loading results...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jobs Tab -->
+            <div id="jobs-tab" class="tab-pane">
+                <div class="card">
+                    <h2>My Jobs History</h2>
+                    <div id="jobsContainer" class="jobs-container">
+                        <p class="loading">Loading jobs...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Friends Tab -->
+            <div id="friends-tab" class="tab-pane">
+                <div class="card">
+                    <h2>Friends & Sharing</h2>
+
+                    <!-- Add Friend Section -->
+                    <div class="friend-section">
+                        <h3>Add Friend</h3>
+                        <form id="addFriendForm" class="inline-form">
+                            <input type="text" id="friendUsername" placeholder="Enter username" required>
+                            <button type="submit" class="btn btn-primary">Send Request</button>
+                        </form>
+                    </div>
+
+                    <!-- Pending Requests -->
+                    <div class="friend-section">
+                        <h3>Pending Friend Requests</h3>
+                        <div id="pendingRequests">
+                            <p class="loading">Loading...</p>
+                        </div>
+                    </div>
+
+                    <!-- Friends List -->
+                    <div class="friend-section">
+                        <h3>My Friends</h3>
+                        <div id="friendsList">
+                            <p class="loading">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shared with Me Tab -->
+            <div id="shared-tab" class="tab-pane">
+                <div class="card">
+                    <h2>Jobs Shared with Me</h2>
+                    <div id="sharedContainer">
+                        <p class="loading">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logs-tab" class="tab-pane">
+                <div class="card">
+                    <h2>System Logs</h2>
+                    <div class="log-controls">
+                        <button class="btn btn-small" id="refreshLogs">🔄 Refresh</button>
+                        <select id="logType">
+                            <option value="combined">All Logs</option>
+                            <option value="error">Errors Only</option>
+                        </select>
+                    </div>
+                    <div id="logsContainer" class="logs-container">
+                        <pre id="logsContent">Loading logs...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Share Job with Friends</h2>
+            <p>Select a friend to share this job with:</p>
+            <div id="shareFriendsList"></div>
+        </div>
+    </div>
+
+    <script src="/app_auth.js"></script>
+</body>
+</html>
