@@ -1,0 +1,41 @@
+{
+  "scheduledJobs": [
+    {
+      "name": "daily-laptop-deals",
+      "schedule": "0 9 * * *",
+      "config": {
+        "searchTerm": "laptop",
+        "maxResults": 3,
+        "websites": [
+          {
+            "name": "amazon",
+            "maxResults": 2
+          },
+          {
+            "name": "ebay",
+            "maxResults": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "weekly-phone-deals",
+      "schedule": "0 10 * * 1",
+      "config": {
+        "searchTerm": "smartphone",
+        "maxResults": 3,
+        "websites": [
+          {
+            "name": "amazon",
+            "maxResults": 3
+          }
+        ]
+      }
+    }
+  ],
+  "defaultSettings": {
+    "maxResults": 3,
+    "timeout": 30000,
+    "retryAttempts": 3
+  }
+}
