@@ -1,6 +1,20 @@
 const ProductScraper = require('../src/scraper');
 const AmazonScraper = require('../src/scrapers/amazonScraper');
 
+// Mock puppeteer to avoid needing Chrome installed for unit tests
+jest.mock('puppeteer', () => ({
+  launch: jest.fn().mockResolvedValue({
+    newPage: jest.fn().mockResolvedValue({
+      setUserAgent: jest.fn(),
+      goto: jest.fn(),
+      waitForSelector: jest.fn(),
+      evaluate: jest.fn(),
+      close: jest.fn()
+    }),
+    close: jest.fn()
+  })
+}));
+
 describe('ProductScraper', () => {
   let scraper;
 

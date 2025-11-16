@@ -47,9 +47,13 @@ class BaseScraper {
   extractPrice(priceText) {
     if (!priceText) return null;
 
+    // For ranges like "$99.99 - $149.99", take only the first price
+    // Split by common range indicators (dash, hyphen, "to")
+    const firstPart = priceText.split(/\s*(-|to|–|—)\s*/i)[0];
+
     // Remove currency symbols and extract number
     // Handle different formats: $1,234.56, €1.234,56, etc.
-    const cleanPrice = priceText
+    const cleanPrice = firstPart
       .replace(/[^\d.,]/g, '')
       .replace(/,(\d{3})/g, '$1')  // Remove thousand separators
       .replace(',', '.');  // Convert European decimal separator
