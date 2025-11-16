@@ -3,12 +3,18 @@
   "version": "1.0.0",
   "description": "A flexible web scraper for monitoring product prices and sending email notifications",
   "main": "src/index.js",
+  "bin": {
+    "product-scraper": "./src/cli.js"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
-    "scrape": "node src/scraper.js",
-    "schedule": "node src/scheduler.js"
+    "test:watch": "jest --watch",
+    "scrape": "node src/cli.js scrape-all",
+    "schedule": "node src/cli.js schedule",
+    "setup": "node src/setup.js",
+    "validate": "node src/validate.js"
   },
   "keywords": [
     "web-scraping",
@@ -20,13 +26,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "puppeteer": "^21.5.2",
+    "puppeteer": "^24.0.0",
     "cheerio": "^1.0.0-rc.12",
     "axios": "^1.6.2",
     "nodemailer": "^6.9.7",
     "node-cron": "^3.0.3",
     "dotenv": "^16.3.1",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "commander": "^12.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
