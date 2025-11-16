@@ -51,3 +51,6 @@ screenshots/
 # Temporary files
 temp/
 tmp/
+
+# Backup files
+*.bak
