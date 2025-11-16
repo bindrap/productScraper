@@ -245,6 +245,11 @@ app.get('/api/stats', authenticate, (req, res) => {
 // Get recent results (user-specific)
 app.get('/api/results', authenticate, (req, res) => {
   try {
+    // Prevent caching
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     const limit = parseInt(req.query.limit) || 50;
     const results = db.getRecentResults(req.user.id, limit);
     res.json(results);
@@ -325,6 +330,11 @@ app.delete('/api/jobs/:jobId', authenticate, (req, res) => {
 // Get results for a specific job (user-specific)
 app.get('/api/jobs/:jobId/results', authenticate, (req, res) => {
   try {
+    // Prevent caching
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     const jobId = parseInt(req.params.jobId);
     const job = db.getJobByDatabaseId(jobId, req.user.id);
 

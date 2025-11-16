@@ -38,10 +38,18 @@ async function apiCall(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(endpoint, {
+  // Add cache-busting for GET requests
+  let url = endpoint;
+  if (!options.method || options.method === 'GET') {
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}_t=${Date.now()}`;
+  }
+
+  const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include'
+    credentials: 'include',
+    cache: 'no-store'
   });
 
   if (response.status === 401) {
@@ -179,6 +187,9 @@ function initializeSocket() {
       loadStats();
       if (document.querySelector('#jobs-tab.tab-pane.active')) {
         loadJobs();
+      }
+      if (document.querySelector('#results-tab.tab-pane.active')) {
+        loadResults();
       }
     }
   });
@@ -421,6 +432,9 @@ function loadTabContent(tabName) {
 
 async function startScraping(formData) {
   try {
+    // Clear previous results
+    document.getElementById('liveResults').innerHTML = '';
+
     const data = await apiCall('/api/scrape', {
       method: 'POST',
       body: JSON.stringify(formData)
