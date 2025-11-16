@@ -1,5 +1,8 @@
 const AmazonScraper = require('../scrapers/amazonScraper');
 const EbayScraper = require('../scrapers/ebayScraper');
+const NeweggScraper = require('../scrapers/neweggScraper');
+const WalmartScraper = require('../scrapers/walmartScraper');
+const BestBuyScraper = require('../scrapers/bestbuyScraper');
 const logger = require('./logger');
 
 class ScraperRegistry {
@@ -11,7 +14,10 @@ class ScraperRegistry {
   registerDefaultScrapers() {
     this.registerScraper('amazon', new AmazonScraper());
     this.registerScraper('ebay', new EbayScraper());
-    logger.info('Default scrapers registered: amazon, ebay');
+    this.registerScraper('newegg', new NeweggScraper());
+    this.registerScraper('walmart', new WalmartScraper());
+    this.registerScraper('bestbuy', new BestBuyScraper());
+    logger.info('Default scrapers registered: amazon, ebay, newegg, walmart, bestbuy');
   }
 
   registerScraper(name, scraperInstance) {
