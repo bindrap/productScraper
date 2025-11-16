@@ -55,9 +55,30 @@ This checks:
 - Required environment variables are set
 - Email connection works
 
+## Choose Your Interface
+
+### Option 1: Web Dashboard (Easiest!) 🌟
+
+Start the web interface:
+```bash
+npm run web
+```
+
+Then open your browser to **http://localhost:3000**
+
+You'll see a beautiful dashboard where you can:
+- Submit scraping jobs with a form
+- Watch results appear in real-time
+- View all past results and jobs
+- Monitor system logs
+
+**This is the recommended way to use Product Scraper!**
+
+### Option 2: Command Line
+
 ## Run Your First Scrape
 
-### Quick Test
+### Quick Test (CLI)
 ```bash
 npm start
 ```

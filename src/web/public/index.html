@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Scraper Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛍️ Product Scraper Dashboard</h1>
+            <p class="subtitle">Monitor product prices across multiple platforms</p>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="totalResults">0</h3>
+                <p>Total Results</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalJobs">0</h3>
+                <p>Total Jobs</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="recentJobs">0</h3>
+                <p>Last 24h Jobs</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="avgPrice">$0.00</h3>
+                <p>Avg Price</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="scrape">New Scrape</button>
+            <button class="tab-button" data-tab="results">Recent Results</button>
+            <button class="tab-button" data-tab="jobs">Jobs History</button>
+            <button class="tab-button" data-tab="logs">Logs</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Scrape Tab -->
+            <div id="scrape-tab" class="tab-pane active">
+                <div class="card">
+                    <h2>Start New Scraping Job</h2>
+                    <form id="scrapeForm">
+                        <div class="form-group">
+                            <label for="searchTerm">Search Term *</label>
+                            <input type="text" id="searchTerm" required placeholder="e.g., gaming laptop, smartphone">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Websites to Scrape</label>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" name="websites" value="amazon" checked> Amazon
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="websites" value="ebay" checked> eBay
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxResults">Max Results per Site</label>
+                            <input type="number" id="maxResults" value="3" min="1" max="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="sendEmail"> Send results via email
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="scrapeBtn">
+                            🔍 Start Scraping
+                        </button>
+                    </form>
+
+                    <!-- Job Status -->
+                    <div id="jobStatus" class="job-status hidden">
+                        <h3>Job Status</h3>
+                        <div class="status-info">
+                            <p><strong>Job ID:</strong> <span id="currentJobId"></span></p>
+                            <p><strong>Status:</strong> <span id="currentStatus" class="badge"></span></p>
+                            <p><strong>Progress:</strong> <span id="currentProgress"></span></p>
+                        </div>
+                        <div id="liveResults" class="live-results"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div id="results-tab" class="tab-pane">
+                <div class="card">
+                    <h2>Recent Scraping Results</h2>
+                    <div class="search-bar">
+                        <input type="text" id="searchResults" placeholder="Filter by search term...">
+                    </div>
+                    <div id="resultsContainer" class="results-container">
+                        <p class="loading">Loading results...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jobs Tab -->
+            <div id="jobs-tab" class="tab-pane">
+                <div class="card">
+                    <h2>Jobs History</h2>
+                    <div id="jobsContainer" class="jobs-container">
+                        <p class="loading">Loading jobs...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logs-tab" class="tab-pane">
+                <div class="card">
+                    <h2>System Logs</h2>
+                    <div class="log-controls">
+                        <button class="btn btn-small" id="refreshLogs">🔄 Refresh</button>
+                        <select id="logType">
+                            <option value="combined">All Logs</option>
+                            <option value="error">Errors Only</option>
+                        </select>
+                    </div>
+                    <div id="logsContainer" class="logs-container">
+                        <pre id="logsContent">Loading logs...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

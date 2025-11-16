@@ -9,6 +9,11 @@ logs/
 *.log
 npm-debug.log*
 
+# Database
+data/
+*.db
+*.db-journal
+
 # Runtime data
 pids
 *.pid

@@ -9,6 +9,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "web": "node src/web/server.js",
+    "web:dev": "nodemon src/web/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "scrape": "node src/cli.js scrape-all",
@@ -33,7 +35,12 @@
     "node-cron": "^3.0.3",
     "dotenv": "^16.3.1",
     "winston": "^3.11.0",
-    "commander": "^12.0.0"
+    "commander": "^12.0.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "better-sqlite3": "^9.2.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

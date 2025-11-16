@@ -4,13 +4,17 @@ A flexible and extensible web scraper for monitoring product prices across multi
 
 ## Features
 
+- 🖥️ **Web Dashboard**: Modern web interface with real-time updates
 - 🌐 **Multi-platform Support**: Currently supports Amazon and eBay (easily extensible)
 - 📧 **Email Notifications**: Beautifully formatted HTML emails with product details
 - ⏰ **Automated Scheduling**: Set custom intervals for automated scraping
 - 🔧 **Modular Architecture**: Easy to add new websites and customize scrapers
 - 📊 **Intelligent Sorting**: Automatically finds the best deals based on price
+- 💾 **SQLite Database**: Store and track scraping history
+- 🚀 **Real-time Updates**: Live job progress via WebSockets
 - 🛡️ **Error Handling**: Robust error handling and logging
 - ⚡ **Performance Optimized**: Efficient scraping with proper rate limiting
+- 🎯 **CLI Tool**: Full-featured command-line interface
 
 ## Quick Start
 
@@ -43,6 +47,26 @@ cp .env.example .env
 ```bash
 npm run scrape
 ```
+
+## Web Dashboard
+
+### Start the Web Interface
+
+```bash
+npm run web
+```
+
+Open your browser to **http://localhost:3000**
+
+The web dashboard provides:
+- 📊 Real-time statistics and monitoring
+- 🔍 Submit new scraping jobs with instant feedback
+- 📈 View all results with search and filtering
+- 📋 Track job history and status
+- 📝 System logs viewer
+- 🔄 Live updates as scraping happens
+
+See [WEB_INTERFACE.md](WEB_INTERFACE.md) for complete documentation.
 
 ## Configuration
 
