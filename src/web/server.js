@@ -366,8 +366,8 @@ app.post('/api/scrape', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Search term is required' });
     }
 
-    // Always scrape 20 products to ensure we get enough for filtering
-    const maxResults = 20;
+    // Always scrape 50 products to ensure we get enough for filtering
+    const maxResults = 50;
 
     // Create job in database with user ID
     const jobId = db.createJob({
@@ -380,7 +380,7 @@ app.post('/api/scrape', authenticate, async (req, res) => {
     // Return immediately
     res.json({ jobId, status: 'pending', message: 'Job created successfully' });
 
-    // Run scraping in background with 20 results to filter from
+    // Run scraping in background with 50 results to filter from
     runScrapingJob(jobId, searchTerm, websites || ['amazon', 'ebay'], maxResults, sendEmail || false, req.user.id);
 
   } catch (error) {
