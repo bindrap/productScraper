@@ -39,18 +39,30 @@ class NeweggScraper extends BaseScraper {
             const titleElement = element.querySelector('.item-title, a.item-title');
             const priceElement = element.querySelector('.price-current strong, .price-current');
             const linkElement = element.querySelector('.item-title, a.item-title');
-            const imageElement = element.querySelector('img');
+            const imageElement = element.querySelector('img.item-img, img');
             const ratingElement = element.querySelector('.item-rating');
 
-            const title = titleElement ? titleElement.textContent.trim() : '';
+            let title = titleElement ? titleElement.textContent.trim() : '';
             let price = priceElement ? priceElement.textContent.trim() : '';
             const url = linkElement ? linkElement.getAttribute('href') : '';
-            const image = imageElement ? imageElement.getAttribute('src') : '';
+
+            // Get high-quality image URL
+            let image = '';
+            if (imageElement) {
+              image = imageElement.getAttribute('data-src') ||
+                     imageElement.getAttribute('src') || '';
+              // Replace small image with larger version
+              image = image.replace('_S.jpg', '_T.jpg').replace('60.jpg', '640.jpg');
+            }
+
             const ratingText = ratingElement ? ratingElement.getAttribute('title') : '';
             const rating = ratingText ? parseFloat(ratingText.match(/(\d+\.?\d*)/)?.[1]) : null;
 
             // Clean up price
             price = price.replace(/[^0-9.,]/g, '');
+
+            // Clean up title
+            title = title.replace(/\s+/g, ' ').trim();
 
             if (title && price && url) {
               results.push({

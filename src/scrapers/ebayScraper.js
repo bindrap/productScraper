@@ -30,28 +30,38 @@ class EbayScraper extends BaseScraper {
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
-        const productElements = document.querySelectorAll('.s-item');
+        const productElements = document.querySelectorAll('.s-item:not(.s-item--watch-at-auction)');
 
-        for (let i = 0; i < Math.min(productElements.length, maxResults); i++) {
+        for (let i = 0; i < productElements.length && results.length < maxResults; i++) {
           const element = productElements[i];
-
-          // Skip sponsored results or ads
-          if (element.querySelector('.s-item__title').textContent.includes('Shop on eBay')) {
-            continue;
-          }
 
           try {
             const titleElement = element.querySelector('.s-item__title');
             const priceElement = element.querySelector('.s-item__price');
             const linkElement = element.querySelector('.s-item__link');
-            const imageElement = element.querySelector('.s-item__image img');
+            const imageElement = element.querySelector('.s-item__image-wrapper img, .s-item__image img');
 
-            const title = titleElement ? titleElement.textContent.trim() : '';
+            if (!titleElement) continue;
+
+            let title = titleElement.textContent.trim();
             const price = priceElement ? priceElement.textContent.trim() : '';
             const url = linkElement ? linkElement.getAttribute('href') : '';
-            const image = imageElement ? imageElement.getAttribute('src') : '';
 
-            if (title && price && !title.includes('Shop on eBay')) {
+            // Get high-quality image
+            let image = '';
+            if (imageElement) {
+              image = imageElement.getAttribute('src') || imageElement.getAttribute('data-src') || '';
+            }
+
+            // Skip non-product items
+            if (title.includes('Shop on eBay') || title.includes('Related:')) {
+              continue;
+            }
+
+            // Clean up title
+            title = title.replace(/\s+/g, ' ').trim();
+
+            if (title && price && url) {
               results.push({
                 title,
                 price,

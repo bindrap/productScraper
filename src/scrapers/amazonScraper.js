@@ -32,23 +32,44 @@ class AmazonScraper extends BaseScraper {
         const results = [];
         const productElements = document.querySelectorAll('[data-component-type="s-search-result"]');
 
-        for (let i = 0; i < Math.min(productElements.length, maxResults); i++) {
+        for (let i = 0; i < productElements.length && results.length < maxResults; i++) {
           const element = productElements[i];
 
           try {
+            // Skip sponsored results
+            const isSponsored = element.querySelector('[data-component-type="sp-sponsored-result"]') ||
+                              element.querySelector('.AdHolder') ||
+                              element.querySelector('.s-label-popover-default') ||
+                              element.textContent.includes('Sponsored');
+
+            if (isSponsored) {
+              continue;
+            }
+
             const titleElement = element.querySelector('h2 a span, .s-title-instructions-style span');
             const priceElement = element.querySelector('.a-price-whole, .a-price .a-offscreen');
             const linkElement = element.querySelector('h2 a');
-            const imageElement = element.querySelector('img');
+            const imageElement = element.querySelector('img.s-image');
             const ratingElement = element.querySelector('.a-icon-alt');
 
-            const title = titleElement ? titleElement.textContent.trim() : '';
+            let title = titleElement ? titleElement.textContent.trim() : '';
             const price = priceElement ? priceElement.textContent.trim() : '';
             const relativeUrl = linkElement ? linkElement.getAttribute('href') : '';
-            const image = imageElement ? imageElement.getAttribute('src') : '';
+
+            // Get high-quality image URL
+            let image = '';
+            if (imageElement) {
+              image = imageElement.getAttribute('data-image-source-density-1') ||
+                     imageElement.getAttribute('srcset')?.split(',')[0]?.split(' ')[0] ||
+                     imageElement.getAttribute('src') || '';
+            }
+
             const rating = ratingElement ? ratingElement.textContent.match(/(\d+\.?\d*)/)?.[1] : null;
 
-            if (title && price) {
+            // Clean up title - remove "Sponsored" and extra whitespace
+            title = title.replace(/sponsored/gi, '').replace(/\s+/g, ' ').trim();
+
+            if (title && price && relativeUrl) {
               results.push({
                 title,
                 price,

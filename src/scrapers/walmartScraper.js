@@ -21,7 +21,7 @@ class WalmartScraper extends BaseScraper {
       await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
 
       // Wait for search results to load
-      const resultsLoaded = await this.waitForSelector(page, '[data-item-id], [data-testid="list-view"]');
+      const resultsLoaded = await this.waitForSelector(page, '[data-item-id], [data-testid="item-stack"]', 15000);
       if (!resultsLoaded) {
         logger.warn('No search results found on Walmart');
         return [];
@@ -30,35 +30,59 @@ class WalmartScraper extends BaseScraper {
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
-        const productElements = document.querySelectorAll('[data-item-id]');
+        const productElements = document.querySelectorAll('[data-item-id], [data-testid="list-view"] > div');
 
-        for (let i = 0; i < Math.min(productElements.length, maxResults); i++) {
+        for (let i = 0; i < Math.min(productElements.length, maxResults * 2); i++) {
           const element = productElements[i];
 
           try {
-            const titleElement = element.querySelector('[data-automation-id="product-title"], span[data-automation-id="product-title"]');
-            const priceElement = element.querySelector('[data-automation-id="product-price"] .w_iUH7, [itemprop="price"]');
-            const linkElement = element.querySelector('a[link-identifier]');
-            const imageElement = element.querySelector('img[data-testid="productTileImage"], img');
-            const ratingElement = element.querySelector('[data-testid="product-ratings"]');
+            // Try multiple title selectors
+            const titleElement = element.querySelector('[data-automation-id="product-title"]') ||
+                                element.querySelector('span[data-automation-id="product-title"]') ||
+                                element.querySelector('[aria-label*="link"]');
 
-            const title = titleElement ? titleElement.textContent.trim() : '';
-            let price = priceElement ? priceElement.textContent.trim() : '';
+            // Try multiple price selectors
+            const priceElement = element.querySelector('[data-automation-id="product-price"]') ||
+                               element.querySelector('.f2') ||
+                               element.querySelector('[itemprop="price"]');
+
+            // Try multiple link selectors
+            const linkElement = element.querySelector('a[link-identifier]') ||
+                              element.querySelector('a[href*="/ip/"]');
+
+            // Try multiple image selectors
+            const imageElement = element.querySelector('img[data-testid="productTileImage"]') ||
+                                element.querySelector('img[src*="i5.walmartimages"]') ||
+                                element.querySelector('img');
+
+            if (!titleElement || !priceElement) continue;
+
+            let title = titleElement.textContent ? titleElement.textContent.trim() : titleElement.getAttribute('aria-label') || '';
+            let price = priceElement.textContent.trim();
             const relativeUrl = linkElement ? linkElement.getAttribute('href') : '';
-            const image = imageElement ? imageElement.getAttribute('src') : '';
-            const ratingText = ratingElement ? ratingElement.getAttribute('aria-label') : '';
-            const rating = ratingText ? parseFloat(ratingText.match(/(\d+\.?\d*)/)?.[1]) : null;
 
-            // Clean up price
-            price = price.replace('current price Now ', '').replace('current price ', '');
+            // Get high-quality image
+            let image = '';
+            if (imageElement) {
+              image = imageElement.getAttribute('src') || imageElement.getAttribute('data-src') || '';
+            }
 
-            if (title && price && relativeUrl) {
+            // Clean up price - extract just the number
+            price = price.replace(/current price\s*/gi, '')
+                       .replace(/Now\s*/gi, '')
+                       .replace(/^\$/, '')
+                       .trim();
+
+            // Clean up title
+            title = title.replace(/\s+/g, ' ').trim();
+
+            if (title && price && relativeUrl && results.length < maxResults) {
               results.push({
                 title,
                 price,
                 url: relativeUrl,
                 image,
-                rating
+                rating: null
               });
             }
           } catch (error) {
