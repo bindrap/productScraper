@@ -20,27 +20,63 @@ class AmazonScraper extends BaseScraper {
       logger.info(`Navigating to Amazon search: ${searchUrl}`);
       await page.goto(searchUrl, { waitUntil: 'networkidle2' });
 
-      // Wait for search results to load
-      const resultsLoaded = await this.waitForSelector(page, '[data-component-type="s-search-result"]');
+      // Wait for search results to load - try multiple selectors
+      const resultsLoaded = await this.waitForSelector(page, '[data-component-type="s-search-result"], .s-result-item, div[data-asin]:not([data-asin=""])', 15000);
       if (!resultsLoaded) {
         logger.warn('No search results found on Amazon');
+        // Take screenshot for debugging
+        try {
+          await page.screenshot({ path: 'amazon-debug.png' });
+          logger.info('Saved Amazon debug screenshot');
+        } catch (e) {}
         return [];
       }
 
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
-        const productElements = document.querySelectorAll('[data-component-type="s-search-result"]');
+        // Try multiple selector strategies
+        let productElements = document.querySelectorAll('[data-component-type="s-search-result"]');
+
+        if (productElements.length === 0) {
+          productElements = document.querySelectorAll('.s-result-item[data-asin]:not([data-asin=""])');
+        }
+
+        if (productElements.length === 0) {
+          productElements = document.querySelectorAll('div[data-asin]:not([data-asin=""])');
+        }
+
+        console.log(`Found ${productElements.length} product elements on Amazon`);
 
         for (let i = 0; i < productElements.length && results.length < maxResults; i++) {
           const element = productElements[i];
 
           try {
-            const titleElement = element.querySelector('h2 a span, .s-title-instructions-style span');
-            const priceElement = element.querySelector('.a-price-whole, .a-price .a-offscreen');
-            const linkElement = element.querySelector('h2 a');
-            const imageElement = element.querySelector('img.s-image');
-            const ratingElement = element.querySelector('.a-icon-alt');
+            // Try multiple title selectors
+            const titleElement = element.querySelector('h2 a span') ||
+                                element.querySelector('h2 span') ||
+                                element.querySelector('.s-title-instructions-style span') ||
+                                element.querySelector('h2') ||
+                                element.querySelector('.a-size-base-plus, .a-size-medium');
+
+            // Try multiple price selectors
+            const priceElement = element.querySelector('.a-price-whole') ||
+                                element.querySelector('.a-price .a-offscreen') ||
+                                element.querySelector('.a-price-fraction') ||
+                                element.querySelector('.a-price span:first-child') ||
+                                element.querySelector('[data-a-color="price"]');
+
+            // Try multiple link selectors
+            const linkElement = element.querySelector('h2 a') ||
+                              element.querySelector('a.a-link-normal[href*="/dp/"]') ||
+                              element.querySelector('a[href*="/dp/"]');
+
+            const imageElement = element.querySelector('img.s-image') ||
+                                element.querySelector('img[data-image-latency]') ||
+                                element.querySelector('img');
+
+            const ratingElement = element.querySelector('.a-icon-alt') ||
+                                 element.querySelector('[aria-label*="out of"]');
 
             let title = titleElement ? titleElement.textContent.trim() : '';
             const price = priceElement ? priceElement.textContent.trim() : '';
