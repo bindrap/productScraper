@@ -363,7 +363,7 @@ class ScraperDatabase {
     const stmt = this.db.prepare(`
       SELECT ss.*, j.*, u.username as owner_username, u.display_name as owner_display_name
       FROM shared_searches ss
-      JOIN scraping_jobs j ON j.job_id = ss.job_id
+      JOIN scraping_jobs j ON j.id = ss.job_id
       JOIN users u ON u.id = ss.owner_id
       WHERE ss.shared_with_id = ?
       ORDER BY ss.created_at DESC

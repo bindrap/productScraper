@@ -458,3 +458,375 @@ header h1 {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--dark);
 }
+
+/* ==========================================
+   Authentication Screens
+   ========================================== */
+
+.auth-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+}
+
+.auth-container {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-width: 450px;
+    width: 100%;
+    text-align: center;
+}
+
+.auth-container h1 {
+    font-size: 2.5em;
+    color: var(--dark);
+    margin-bottom: 10px;
+}
+
+.auth-subtitle {
+    color: #7f8c8d;
+    margin-bottom: 30px;
+    font-size: 1.1em;
+}
+
+.auth-form {
+    display: none;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+.auth-form h2 {
+    color: var(--dark);
+    margin-bottom: 25px;
+    font-size: 1.8em;
+}
+
+.auth-form .form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"] {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border 0.3s;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.btn-full {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.1em;
+    margin-top: 10px;
+}
+
+.auth-switch {
+    margin-top: 20px;
+    color: #7f8c8d;
+    font-size: 0.95em;
+}
+
+.auth-switch a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================
+   User Menu
+   ========================================== */
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-display {
+    font-weight: 600;
+    color: var(--dark);
+    font-size: 1.1em;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+/* ==========================================
+   Friends Management
+   ========================================== */
+
+.friend-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--light);
+}
+
+.friend-section:last-child {
+    border-bottom: none;
+}
+
+.friend-section h3 {
+    color: var(--dark);
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.inline-form {
+    display: flex;
+    gap: 10px;
+}
+
+.inline-form input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 1em;
+}
+
+.friend-request,
+.friend-item,
+.share-friend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin: 10px 0;
+    border-left: 4px solid var(--primary);
+}
+
+.friend-request span,
+.friend-item span,
+.share-friend-item span {
+    font-size: 1em;
+    color: var(--dark);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #7f8c8d;
+    font-style: italic;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.error {
+    text-align: center;
+    padding: 20px;
+    color: var(--danger);
+    background: #fee;
+    border-radius: 6px;
+    border-left: 4px solid var(--danger);
+}
+
+/* ==========================================
+   Share Modal
+   ========================================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+    color: var(--dark);
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 20px;
+}
+
+.close:hover,
+.close:focus {
+    color: var(--dark);
+}
+
+/* ==========================================
+   Job Actions
+   ========================================== */
+
+.job-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+/* ==========================================
+   Result Cards
+   ========================================== */
+
+.result-card {
+    background: #f8f9fa;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border-left: 4px solid var(--success);
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.result-card img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.result-info {
+    flex: 1;
+}
+
+.result-info h3 {
+    color: var(--dark);
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    line-height: 1.4;
+}
+
+.result-price {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--success);
+    margin: 8px 0;
+}
+
+.result-source {
+    color: #7f8c8d;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+/* ==========================================
+   Badge Variants
+   ========================================== */
+
+.badge-queued {
+    background: #95a5a6;
+    color: white;
+}
+
+/* ==========================================
+   Responsive Updates
+   ========================================== */
+
+@media (max-width: 768px) {
+    .auth-container {
+        padding: 30px 20px;
+    }
+
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .user-menu {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .inline-form {
+        flex-direction: column;
+    }
+
+    .friend-request,
+    .friend-item,
+    .share-friend-item {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .friend-request button,
+    .friend-item button,
+    .share-friend-item button {
+        width: 100%;
+    }
+
+    .result-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .result-card img {
+        width: 100%;
+        height: auto;
+        max-width: 200px;
+    }
+
+    .modal-content {
+        margin: 20% auto;
+        width: 95%;
+    }
+}
