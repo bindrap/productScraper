@@ -235,17 +235,42 @@ async function loadResults() {
       return;
     }
 
-    container.innerHTML = results.map(result => `
-      <div class="result-card">
-        <img src="${result.image_url || '/placeholder.jpg'}" alt="${result.title}" onerror="this.src='/placeholder.jpg'">
-        <div class="result-info">
-          <h3>${result.title}</h3>
-          <p class="result-price">$${result.price ? result.price.toFixed(2) : 'N/A'}</p>
-          <p class="result-source">${result.website} ${result.in_stock ? '✅ In Stock' : '❌ Out of Stock'}</p>
-          <a href="${result.url}" target="_blank" class="btn btn-small">View Product</a>
-        </div>
+    container.innerHTML = `
+      <div class="table-container">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Product Title</th>
+              <th>Price (USD)</th>
+              <th>Price (CAD)</th>
+              <th>Website</th>
+              <th>Status</th>
+              <th>Rating</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${results.map(result => `
+              <tr>
+                <td class="product-image-cell">
+                  <img src="${result.image_url || '/placeholder.jpg'}" alt="${result.title}" onerror="this.src='/placeholder.jpg'" class="product-thumbnail">
+                </td>
+                <td class="product-title-cell">${result.title}</td>
+                <td class="product-price-cell">$${result.price ? result.price.toFixed(2) : 'N/A'}</td>
+                <td class="product-price-cell">${result.price ? '$' + (result.price * 1.35).toFixed(2) : 'N/A'}</td>
+                <td class="product-website-cell">${result.website}</td>
+                <td class="product-status-cell">${result.in_stock ? '<span class="status-badge in-stock">✅ In Stock</span>' : '<span class="status-badge out-of-stock">❌ Out of Stock</span>'}</td>
+                <td class="product-rating-cell">${result.rating ? '⭐ ' + result.rating : '-'}</td>
+                <td class="product-action-cell">
+                  <a href="${result.url}" target="_blank" class="btn btn-small btn-primary">View</a>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-    `).join('');
+    `;
   } catch (error) {
     container.innerHTML = '<p class="error">Failed to load results</p>';
   }
@@ -442,17 +467,47 @@ function updateJobStatus(status, progress) {
 function displayLiveResults(results) {
   const container = document.getElementById('liveResults');
 
-  container.innerHTML = results.map(result => `
-    <div class="result-card">
-      <img src="${result.image_url || '/placeholder.jpg'}" alt="${result.title}" onerror="this.src='/placeholder.jpg'">
-      <div class="result-info">
-        <h3>${result.title}</h3>
-        <p class="result-price">$${result.price ? result.price.toFixed(2) : 'N/A'}</p>
-        <p class="result-source">${result.website} ${result.in_stock ? '✅ In Stock' : '❌ Out of Stock'}</p>
-        <a href="${result.url}" target="_blank" class="btn btn-small">View Product</a>
-      </div>
+  if (results.length === 0) {
+    container.innerHTML = '<p class="empty-state">No results yet...</p>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="table-container">
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Product Title</th>
+            <th>Price (USD)</th>
+            <th>Price (CAD)</th>
+            <th>Website</th>
+            <th>Status</th>
+            <th>Rating</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${results.map(result => `
+            <tr>
+              <td class="product-image-cell">
+                <img src="${result.image_url || '/placeholder.jpg'}" alt="${result.title}" onerror="this.src='/placeholder.jpg'" class="product-thumbnail">
+              </td>
+              <td class="product-title-cell">${result.title}</td>
+              <td class="product-price-cell">$${result.price ? result.price.toFixed(2) : 'N/A'}</td>
+              <td class="product-price-cell">${result.price ? '$' + (result.price * 1.35).toFixed(2) : 'N/A'}</td>
+              <td class="product-website-cell">${result.website}</td>
+              <td class="product-status-cell">${result.in_stock ? '<span class="status-badge in-stock">✅ In Stock</span>' : '<span class="status-badge out-of-stock">❌ Out of Stock</span>'}</td>
+              <td class="product-rating-cell">${result.rating ? '⭐ ' + result.rating : '-'}</td>
+              <td class="product-action-cell">
+                <a href="${result.url}" target="_blank" class="btn btn-small btn-primary">View</a>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
-  `).join('');
+  `;
 }
 
 // ==========================================

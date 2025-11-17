@@ -1054,3 +1054,244 @@ header h1 {
         font-size: 2.5em;
     }
 }
+
+/* ==========================================
+   Product Table Styles
+   ========================================== */
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
+}
+
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.products-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.products-table thead th {
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.products-table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.2s ease;
+}
+
+.products-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.products-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.products-table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+/* Image Cell */
+.product-image-cell {
+    width: 80px;
+    text-align: center;
+}
+
+.product-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Title Cell */
+.product-title-cell {
+    max-width: 400px;
+    font-weight: 500;
+    color: #1f2937;
+    line-height: 1.4;
+}
+
+/* Price Cell */
+.product-price-cell {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1.1rem;
+    white-space: nowrap;
+}
+
+/* Website Cell */
+.product-website-cell {
+    text-transform: capitalize;
+    font-weight: 500;
+    color: #6366f1;
+    white-space: nowrap;
+}
+
+/* Status Cell */
+.product-status-cell {
+    white-space: nowrap;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-badge.in-stock {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.out-of-stock {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Rating Cell */
+.product-rating-cell {
+    color: #f59e0b;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Action Cell */
+.product-action-cell {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.product-action-cell .btn {
+    margin: 0;
+}
+
+/* Responsive Table */
+@media (max-width: 1024px) {
+    .products-table {
+        font-size: 0.9rem;
+    }
+
+    .products-table thead th {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .products-table td {
+        padding: 0.5rem;
+    }
+
+    .product-thumbnail {
+        width: 50px;
+        height: 50px;
+    }
+
+    .product-title-cell {
+        max-width: 250px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .products-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .products-table thead,
+    .products-table tbody,
+    .products-table tr,
+    .products-table td,
+    .products-table th {
+        display: block;
+    }
+
+    .products-table thead {
+        display: none;
+    }
+
+    .products-table tbody tr {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 0.5rem;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        background: white;
+    }
+
+    .product-image-cell {
+        grid-column: 1;
+        grid-row: 1 / 4;
+        width: auto;
+    }
+
+    .product-thumbnail {
+        width: 70px;
+        height: 70px;
+    }
+
+    .product-title-cell {
+        grid-column: 2;
+        grid-row: 1;
+        max-width: 100%;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .product-price-cell:before,
+    .product-website-cell:before,
+    .product-status-cell:before,
+    .product-rating-cell:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #6b7280;
+        margin-right: 0.5rem;
+    }
+
+    .product-price-cell {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .product-website-cell,
+    .product-status-cell,
+    .product-rating-cell,
+    .product-action-cell {
+        grid-column: 1 / -1;
+    }
+
+    .product-action-cell {
+        text-align: left;
+        margin-top: 0.5rem;
+    }
+}
