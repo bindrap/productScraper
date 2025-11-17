@@ -177,6 +177,28 @@ class ScraperDatabase {
       `);
     }
 
+    // Scheduled jobs table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS scheduled_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        search_term TEXT NOT NULL,
+        websites TEXT NOT NULL,
+        max_results INTEGER DEFAULT 3,
+        frequency TEXT NOT NULL,
+        duration_value INTEGER NOT NULL,
+        duration_unit TEXT NOT NULL,
+        send_email BOOLEAN DEFAULT 0,
+        is_active BOOLEAN DEFAULT 1,
+        last_run DATETIME,
+        next_run DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_results_user_id ON scraping_results(user_id);
@@ -191,6 +213,9 @@ class ScraperDatabase {
       CREATE INDEX IF NOT EXISTS idx_friends_status ON friends(status);
       CREATE INDEX IF NOT EXISTS idx_shared_owner ON shared_searches(owner_id);
       CREATE INDEX IF NOT EXISTS idx_shared_with ON shared_searches(shared_with_id);
+      CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_user_id ON scheduled_jobs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_active ON scheduled_jobs(is_active);
+      CREATE INDEX IF NOT EXISTS idx_scheduled_jobs_next_run ON scheduled_jobs(next_run);
     `);
   }
 
@@ -633,6 +658,139 @@ class ScraperDatabase {
     const result = stmt.run();
     logger.info(`Cleaned ${result.changes} old results`);
     return result.changes;
+  }
+
+  // ============= Scheduled Jobs Management =============
+
+  createScheduledJob(userId, jobData) {
+    const { name, searchTerm, websites, maxResults, frequency, durationValue, durationUnit, sendEmail } = jobData;
+
+    // Calculate expiration date
+    const now = new Date();
+    const expiresAt = new Date(now);
+    if (durationUnit === 'days') {
+      expiresAt.setDate(expiresAt.getDate() + durationValue);
+    } else if (durationUnit === 'weeks') {
+      expiresAt.setDate(expiresAt.getDate() + (durationValue * 7));
+    } else if (durationUnit === 'months') {
+      expiresAt.setMonth(expiresAt.getMonth() + durationValue);
+    }
+
+    // Calculate next run time based on frequency
+    const nextRun = new Date(now);
+    if (frequency === 'daily') {
+      nextRun.setDate(nextRun.getDate() + 1);
+    } else if (frequency === 'weekly') {
+      nextRun.setDate(nextRun.getDate() + 7);
+    } else if (frequency === 'hourly') {
+      nextRun.setHours(nextRun.getHours() + 1);
+    }
+
+    const stmt = this.db.prepare(`
+      INSERT INTO scheduled_jobs (
+        user_id, name, search_term, websites, max_results,
+        frequency, duration_value, duration_unit, send_email,
+        next_run, expires_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      userId,
+      name,
+      searchTerm,
+      JSON.stringify(websites),
+      maxResults || 3,
+      frequency,
+      durationValue,
+      durationUnit,
+      sendEmail ? 1 : 0,
+      nextRun.toISOString(),
+      expiresAt.toISOString()
+    );
+
+    logger.info(`Created scheduled job ${result.lastInsertRowid} for user ${userId}`);
+    return result.lastInsertRowid;
+  }
+
+  getScheduledJobs(userId) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM scheduled_jobs
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `);
+
+    const jobs = stmt.all(userId);
+    return jobs.map(job => ({
+      ...job,
+      websites: JSON.parse(job.websites),
+      is_active: Boolean(job.is_active),
+      send_email: Boolean(job.send_email)
+    }));
+  }
+
+  getActiveScheduledJobs() {
+    const stmt = this.db.prepare(`
+      SELECT * FROM scheduled_jobs
+      WHERE is_active = 1
+        AND (expires_at IS NULL OR expires_at > datetime('now'))
+        AND next_run <= datetime('now')
+      ORDER BY next_run ASC
+    `);
+
+    const jobs = stmt.all();
+    return jobs.map(job => ({
+      ...job,
+      websites: JSON.parse(job.websites),
+      is_active: Boolean(job.is_active),
+      send_email: Boolean(job.send_email)
+    }));
+  }
+
+  updateScheduledJobNextRun(jobId) {
+    const job = this.db.prepare('SELECT * FROM scheduled_jobs WHERE id = ?').get(jobId);
+    if (!job) return;
+
+    const now = new Date();
+    const nextRun = new Date(now);
+
+    if (job.frequency === 'daily') {
+      nextRun.setDate(nextRun.getDate() + 1);
+    } else if (job.frequency === 'weekly') {
+      nextRun.setDate(nextRun.getDate() + 7);
+    } else if (job.frequency === 'hourly') {
+      nextRun.setHours(nextRun.getHours() + 1);
+    }
+
+    const stmt = this.db.prepare(`
+      UPDATE scheduled_jobs
+      SET last_run = ?, next_run = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(now.toISOString(), nextRun.toISOString(), jobId);
+    logger.info(`Updated next run for scheduled job ${jobId}`);
+  }
+
+  toggleScheduledJob(jobId, userId) {
+    const stmt = this.db.prepare(`
+      UPDATE scheduled_jobs
+      SET is_active = NOT is_active
+      WHERE id = ? AND user_id = ?
+    `);
+
+    const result = stmt.run(jobId, userId);
+    return result.changes > 0;
+  }
+
+  deleteScheduledJob(jobId, userId) {
+    const stmt = this.db.prepare(`
+      DELETE FROM scheduled_jobs
+      WHERE id = ? AND user_id = ?
+    `);
+
+    const result = stmt.run(jobId, userId);
+    logger.info(`Deleted scheduled job ${jobId}`);
+    return result.changes > 0;
   }
 
   close() {

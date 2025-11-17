@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser');
 const ScraperDatabase = require('./database');
 const ProductScraper = require('../scraper');
 const EmailService = require('../services/emailService');
+const JobScheduler = require('../services/jobScheduler');
 const { generateToken, authenticate, optionalAuth } = require('./auth');
 const logger = require('../utils/logger');
 require('dotenv').config();
@@ -22,15 +23,18 @@ const io = new Server(server);
 // Initialize database
 const db = new ScraperDatabase();
 
+// Store active scraping jobs
+const activeJobs = new Map();
+
+// Initialize job scheduler (will be started after server starts)
+let jobScheduler = null;
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Store active scraping jobs
-const activeJobs = new Map();
 
 // ============= Authentication Routes =============
 
@@ -572,6 +576,91 @@ io.on('connection', (socket) => {
   });
 });
 
+// ============= Scheduled Jobs API =============
+
+// Get all scheduled jobs for the user
+app.get('/api/scheduled-jobs', authenticate, (req, res) => {
+  try {
+    const jobs = db.getScheduledJobs(req.user.id);
+    res.json(jobs);
+  } catch (error) {
+    logger.error('Error getting scheduled jobs:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a new scheduled job
+app.post('/api/scheduled-jobs', authenticate, (req, res) => {
+  try {
+    const { name, searchTerm, websites, maxResults, frequency, durationValue, durationUnit, sendEmail } = req.body;
+
+    if (!name || !searchTerm || !websites || !frequency || !durationValue || !durationUnit) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const jobId = db.createScheduledJob(req.user.id, {
+      name,
+      searchTerm,
+      websites,
+      maxResults: maxResults || 3,
+      frequency,
+      durationValue: parseInt(durationValue),
+      durationUnit,
+      sendEmail: sendEmail || false
+    });
+
+    res.json({ jobId, message: 'Scheduled job created successfully' });
+  } catch (error) {
+    logger.error('Error creating scheduled job:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle a scheduled job (pause/resume)
+app.patch('/api/scheduled-jobs/:jobId/toggle', authenticate, (req, res) => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const success = db.toggleScheduledJob(jobId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Scheduled job not found' });
+    }
+
+    res.json({ message: 'Scheduled job toggled successfully' });
+  } catch (error) {
+    logger.error('Error toggling scheduled job:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a scheduled job
+app.delete('/api/scheduled-jobs/:jobId', authenticate, (req, res) => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    const success = db.deleteScheduledJob(jobId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Scheduled job not found' });
+    }
+
+    res.json({ message: 'Scheduled job deleted successfully' });
+  } catch (error) {
+    logger.error('Error deleting scheduled job:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get scheduler status
+app.get('/api/scheduled-jobs/status', authenticate, (req, res) => {
+  try {
+    const status = jobScheduler ? jobScheduler.getStatus() : { isRunning: false, activeScheduledJobs: 0 };
+    res.json(status);
+  } catch (error) {
+    logger.error('Error getting scheduler status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============= Server Startup =============
 
 const PORT = process.env.PORT || 3000;
@@ -583,11 +672,22 @@ server.listen(PORT, () => {
   console.log(`📡 API: http://localhost:${PORT}/api`);
   console.log(`👥 Multi-user with authentication enabled`);
   console.log(`\nPress Ctrl+C to stop the server\n`);
+
+  // Start the job scheduler
+  jobScheduler = new JobScheduler(db, runScrapingJob);
+  jobScheduler.start();
+  console.log(`🕒 Job scheduler started - checking for scheduled jobs every minute`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   logger.info('Shutting down web server...');
+
+  // Stop the job scheduler
+  if (jobScheduler) {
+    jobScheduler.stop();
+  }
+
   db.close();
   server.close(() => {
     logger.info('Server shut down successfully');

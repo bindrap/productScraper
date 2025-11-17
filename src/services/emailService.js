@@ -8,7 +8,7 @@ class EmailService {
     this.initializeTransporter();
   }
 
-  initializeTransporter() {
+  async initializeTransporter() {
     try {
       // Debug: Log what we're getting from environment
       logger.debug('Email configuration:', {
@@ -18,22 +18,39 @@ class EmailService {
       });
 
       if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-        logger.error('Email credentials missing! EMAIL_USER or EMAIL_PASSWORD not set in .env file');
+        logger.error('❌ Email credentials missing! EMAIL_USER or EMAIL_PASSWORD not set in .env file');
+        logger.error('ℹ️  To enable email features, add your Gmail credentials to .env file');
+        logger.error('ℹ️  Gmail requires an App Password, not your regular password');
+        logger.error('ℹ️  Generate one at: https://myaccount.google.com/apppasswords');
         this.transporter = null;
         return;
       }
 
+      // Configure for Gmail with secure settings
       this.transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // use SSL
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: true
         }
       });
 
-      logger.info('✅ Email service initialized successfully');
+      // Test the connection
+      logger.info('🔄 Testing email connection...');
+      await this.transporter.verify();
+      logger.info('✅ Email service initialized and verified successfully');
     } catch (error) {
-      logger.error('❌ Failed to initialize email service:', error);
+      logger.error('❌ Failed to initialize email service:', error.message);
+      logger.error('ℹ️  Common issues:');
+      logger.error('   1. Password might not be a Gmail App Password');
+      logger.error('   2. Gmail account needs "Less secure app access" disabled (use App Password instead)');
+      logger.error('   3. Generate App Password at: https://myaccount.google.com/apppasswords');
       this.transporter = null;
     }
   }
