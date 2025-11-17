@@ -17,27 +17,81 @@ class BestBuyScraper extends BaseScraper {
     const searchUrl = `${this.baseUrl}/site/searchpage.jsp?st=${encodeURIComponent(searchTerm)}`;
 
     try {
-      logger.info(`Navigating to BestBuy search: ${searchUrl}`);
-      await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+      logger.info(`🔍 Navigating to BestBuy search: ${searchUrl}`);
 
-      // Wait for search results to load - try multiple selectors
-      const resultsLoaded = await this.waitForSelector(page, '.sku-item, .list-item, .shop-product-title, div.shop-sku-list-item', 20000);
-      if (!resultsLoaded) {
-        logger.warn('No search results found on BestBuy');
+      // Navigate with longer timeout
+      await page.goto(searchUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000
+      });
+
+      // Add random human-like delay
+      const delay = 2000 + Math.random() * 2000;
+      logger.debug(`⏱️  Waiting ${Math.round(delay)}ms (human-like delay)...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // Check for CAPTCHA or bot detection
+      const hasCaptcha = await page.evaluate(() => {
+        return document.body.textContent.includes('Please verify') ||
+               document.body.textContent.includes('Access Denied') ||
+               document.body.textContent.includes('Pardon our interruption') ||
+               document.querySelector('input[name="captcha"]') !== null ||
+               document.querySelector('#px-captcha') !== null;
+      });
+
+      if (hasCaptcha) {
+        logger.warn('⚠️  CAPTCHA detected on BestBuy - saving screenshot');
+        await page.screenshot({ path: 'bestbuy-captcha.png', fullPage: true });
+        logger.error('❌ BestBuy blocked with CAPTCHA. Screenshot saved to bestbuy-captcha.png');
         return [];
       }
+
+      // Log page title for debugging
+      const pageTitle = await page.title();
+      logger.debug(`📄 Page title: ${pageTitle}`);
+
+      // Wait for search results to load - try multiple selectors
+      logger.debug('⏳ Waiting for product elements...');
+      const resultsLoaded = await this.waitForSelector(page, '.sku-item, .list-item, .shop-product-title, div.shop-sku-list-item', 20000);
+
+      if (!resultsLoaded) {
+        logger.warn('❌ No search results found on BestBuy');
+        // Take screenshot for debugging
+        try {
+          await page.screenshot({ path: 'bestbuy-debug.png', fullPage: true });
+          logger.info('📸 Saved BestBuy debug screenshot to bestbuy-debug.png');
+
+          // Also log page HTML for analysis
+          const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+          logger.debug(`📝 Page HTML length: ${bodyHTML.length} characters`);
+          if (bodyHTML.length < 1000) {
+            logger.error(`⚠️  Suspiciously short HTML response: ${bodyHTML.substring(0, 500)}`);
+          }
+        } catch (e) {
+          logger.error('Failed to save debug screenshot:', e.message);
+        }
+        return [];
+      }
+
+      logger.info('✅ BestBuy product elements found');
 
       // Extract product information
       const products = await page.evaluate((maxResults) => {
         const results = [];
         // Try multiple selector combinations
         let productElements = document.querySelectorAll('.sku-item');
+        let selectorUsed = '.sku-item';
+
         if (productElements.length === 0) {
           productElements = document.querySelectorAll('.list-item');
+          selectorUsed = '.list-item';
         }
         if (productElements.length === 0) {
           productElements = document.querySelectorAll('.shop-sku-list-item');
+          selectorUsed = '.shop-sku-list-item';
         }
+
+        console.log(`✅ Found ${productElements.length} product elements using: ${selectorUsed}`);
 
         for (let i = 0; i < Math.min(productElements.length, maxResults * 3) && results.length < maxResults; i++) {
           const element = productElements[i];
@@ -71,7 +125,10 @@ class BestBuyScraper extends BaseScraper {
                                 element.querySelector('img[class*="product"]') ||
                                 element.querySelector('img');
 
-            if (!titleElement || !priceElement) continue;
+            if (!titleElement || !priceElement) {
+              console.log(`❌ Skipped product ${i + 1}: missing data (title: ${!!titleElement}, price: ${!!priceElement})`);
+              continue;
+            }
 
             let title = titleElement.textContent.trim();
             let price = priceElement.textContent.trim();
@@ -100,12 +157,16 @@ class BestBuyScraper extends BaseScraper {
                 image,
                 rating: null
               });
+              console.log(`✅ Product ${results.length}: ${title.substring(0, 50)}... - $${price}`);
+            } else {
+              console.log(`❌ Skipped product ${i + 1}: missing data (title: ${!!title}, price: ${!!price}, url: ${!!relativeUrl})`);
             }
           } catch (error) {
-            console.log('Error extracting product data:', error);
+            console.log(`❌ Error extracting product ${i + 1}:`, error.message);
           }
         }
 
+        console.log(`📊 Total products extracted: ${results.length}/${productElements.length}`);
         return results;
       }, maxResults);
 

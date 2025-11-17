@@ -1,3 +1,4 @@
+require('dotenv').config(); // Ensure .env is loaded
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
 
@@ -9,6 +10,19 @@ class EmailService {
 
   initializeTransporter() {
     try {
+      // Debug: Log what we're getting from environment
+      logger.debug('Email configuration:', {
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        user: process.env.EMAIL_USER ? '***@' + process.env.EMAIL_USER.split('@')[1] : 'NOT SET',
+        passLength: process.env.EMAIL_PASSWORD ? process.env.EMAIL_PASSWORD.length : 0
+      });
+
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+        logger.error('Email credentials missing! EMAIL_USER or EMAIL_PASSWORD not set in .env file');
+        this.transporter = null;
+        return;
+      }
+
       this.transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
         auth: {
@@ -17,9 +31,10 @@ class EmailService {
         }
       });
 
-      logger.info('Email service initialized');
+      logger.info('✅ Email service initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize email service:', error);
+      logger.error('❌ Failed to initialize email service:', error);
+      this.transporter = null;
     }
   }
 
