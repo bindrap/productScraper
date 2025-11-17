@@ -1,5 +1,6 @@
 const BaseScraper = require('./baseScraper');
 const logger = require('../utils/logger');
+const ProductRelevance = require('../utils/productRelevance');
 
 class NeweggScraper extends BaseScraper {
   constructor() {
@@ -96,8 +97,15 @@ class NeweggScraper extends BaseScraper {
         );
       });
 
-      logger.info(`Successfully scraped ${formattedProducts.length} products from Newegg`);
-      return formattedProducts;
+      // Filter products by relevance to search term
+      const relevantProducts = ProductRelevance.filterRelevantProducts(
+        formattedProducts,
+        searchTerm,
+        { minScore: 0.3, strictMode: false }
+      );
+
+      logger.info(`Successfully scraped ${relevantProducts.length} relevant products from Newegg (${formattedProducts.length} total extracted)`);
+      return relevantProducts;
 
     } catch (error) {
       logger.error('Error scraping Newegg:', error);

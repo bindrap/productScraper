@@ -1,5 +1,6 @@
 const BaseScraper = require('./baseScraper');
 const logger = require('../utils/logger');
+const ProductRelevance = require('../utils/productRelevance');
 
 class BestBuyScraper extends BaseScraper {
   constructor() {
@@ -185,8 +186,15 @@ class BestBuyScraper extends BaseScraper {
         );
       });
 
-      logger.info(`Successfully scraped ${formattedProducts.length} products from BestBuy`);
-      return formattedProducts;
+      // Filter products by relevance to search term
+      const relevantProducts = ProductRelevance.filterRelevantProducts(
+        formattedProducts,
+        searchTerm,
+        { minScore: 0.3, strictMode: false }
+      );
+
+      logger.info(`Successfully scraped ${relevantProducts.length} relevant products from BestBuy (${formattedProducts.length} total extracted)`);
+      return relevantProducts;
 
     } catch (error) {
       logger.error('Error scraping BestBuy:', error);
